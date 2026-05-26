@@ -1,0 +1,27 @@
+{
+  "name": "CompPack",
+  "version": "1.0.0",
+  "description": "CompPack — быстрая настройка Windows",
+  "author": "INCFAY",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win portable"
+  },
+  "build": {
+    "appId": "com.autoinstaller.app",
+    "productName": "CompPack",
+    "directories": { "output": "dist" },
+    "files": ["main.js", "preload.js", "index.html", "appicon.png", "loading.gif", "icons/**", "tools/**"],
+    "asarUnpack": ["tools/**"],
+    "win": {
+      "target": [{ "target": "portable", "arch": ["x64"] }],
+      "icon": "icon.ico"
+    },
+    "portable": { "artifactName": "CompPack.exe" }
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
+  }
+}

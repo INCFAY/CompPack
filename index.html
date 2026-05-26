@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:"/>
+<title>CompPack</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.15)}
+html,body{height:100%;overflow:hidden}
+body{
+  font-family:'Segoe UI',system-ui,sans-serif;
+  background:#0a0a14;
+  display:flex;flex-direction:column;height:100vh;overflow:hidden;
+  color:#fff;
+}
+
+/* ── Keyframes ── */
+@keyframes spin      { to{transform:rotate(360deg)} }
+@keyframes barFlow   { from{background-position:200% center} to{background-position:-200% center} }
+@keyframes popIn     { 0%{transform:scale(.75);opacity:0}65%{transform:scale(1.05)}100%{transform:scale(1);opacity:1} }
+@keyframes slideUp   { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+@keyframes slideR    { from{opacity:0;transform:translateX(14px)} to{opacity:1;transform:translateX(0)} }
+@keyframes fadeIn    { from{opacity:0} to{opacity:1} }
+@keyframes loadPulse { 0%,100%{opacity:.5} 50%{opacity:1} }
+@keyframes floatUp   { 0%{transform:translateY(0)} 50%{transform:translateY(-6px)} 100%{transform:translateY(0)} }
+@keyframes gradShift { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
+@keyframes cardIn    { from{opacity:0;transform:translateY(14px) scale(.97)} to{opacity:1;transform:none} }
+@keyframes shimmer   { from{background-position:-600px 0} to{background-position:600px 0} }
+@keyframes glowPulse { 0%,100%{box-shadow:0 0 20px rgba(233,30,140,.25),inset 0 1px 0 rgba(255,255,255,.1)} 50%{box-shadow:0 0 36px rgba(233,30,140,.5),inset 0 1px 0 rgba(255,255,255,.15)} }
+@keyframes tooltipIn { from{opacity:0;transform:translateY(6px) scale(.96)} to{opacity:1;transform:none} }
+
+/* ── LOADING ── */
+#loading{
+  position:fixed;inset:0;z-index:1000;
+  background:#0a0a14;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  transition:opacity .6s ease;
+}
+#loading.hide{opacity:0;pointer-events:none}
+#load-media{width:120px;height:120px;display:flex;align-items:center;justify-content:center;margin-bottom:28px;position:relative;}
+#load-gif{width:120px;height:120px;object-fit:contain;border-radius:22px;animation:loadPulse 1.8s ease-in-out infinite;}
+#load-spinner{display:none;width:56px;height:56px;border-radius:50%;border:3px solid rgba(255,255,255,.07);border-top-color:#e91e8c;animation:spin .8s linear infinite;}
+#load-title{color:#fff;font-size:26px;font-weight:800;letter-spacing:-.6px;margin-bottom:6px}
+#load-sub{color:rgba(255,255,255,.3);font-size:13px;margin-bottom:30px;min-height:20px;transition:opacity .2s}
+#load-bar-wrap{width:240px;height:3px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden;margin-bottom:10px;}
+#load-bar{height:100%;width:0%;border-radius:2px;background:linear-gradient(90deg,#f9a825,#e91e8c,#8e24aa);transition:width .4s cubic-bezier(.4,0,.2,1);}
+#load-pct{color:rgba(255,255,255,.2);font-size:11px;font-weight:600;letter-spacing:.5px;}
+
+/* ── AMBIENT ── */
+body::before{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(ellipse 55% 45% at 0% 100%,   rgba(142,36,170,.2)  0%,transparent 60%),
+    radial-gradient(ellipse 45% 50% at 100% 0%,   rgba(249,168,37,.12) 0%,transparent 60%),
+    radial-gradient(ellipse 35% 35% at 80% 100%,  rgba(233,30,140,.12) 0%,transparent 55%),
+    radial-gradient(ellipse 25% 25% at 50% 50%,   rgba(20,10,50,.7)    0%,transparent 70%);
+}
+
+/* ── TITLEBAR ── */
+#titlebar{
+  height:38px;display:flex;align-items:center;justify-content:space-between;
+  padding:0 14px 0 20px;
+  -webkit-app-region:drag;
+  background:rgba(0,0,0,.5);
+  border-bottom:1px solid rgba(255,255,255,.04);
+  flex-shrink:0;position:relative;z-index:10;
+}
+#titlebar-name{
+  color:rgba(255,255,255,.2);font-size:10px;font-weight:700;
+  letter-spacing:1.4px;text-transform:uppercase;
+  display:flex;align-items:center;gap:8px;
+}
+#titlebar-name::before{
+  content:'';width:6px;height:6px;border-radius:50%;
+  background:linear-gradient(135deg,#f9a825,#e91e8c);
+  box-shadow:0 0 8px rgba(233,30,140,.6);
+}
+.tb-btns{display:flex;gap:4px;-webkit-app-region:no-drag}
+.tb-btn{
+  width:28px;height:22px;border-radius:6px;border:none;cursor:pointer;
+  background:rgba(255,255,255,.05);color:rgba(255,255,255,.3);
+  font-size:12px;display:flex;align-items:center;justify-content:center;
+  transition:background .15s,color .15s;
+}
+.tb-btn:hover{background:rgba(255,255,255,.1);color:#fff}
+.tb-btn.x:hover{background:#c62828;color:#fff}
+
+/* ── SHELL ── */
+#shell{display:flex;flex-direction:column;flex:1;min-height:0;opacity:0;transition:opacity .55s ease;position:relative;z-index:1;}
+#shell.visible{opacity:1}
+
+/* ── ADMIN BANNER ── */
+#admin-banner{
+  display:none;align-items:center;justify-content:space-between;
+  padding:8px 22px;
+  background:linear-gradient(90deg,rgba(249,168,37,.08),rgba(233,30,140,.05));
+  border-bottom:1px solid rgba(249,168,37,.15);
+  flex-shrink:0;animation:slideUp .3s ease;
+}
+#admin-banner span{color:#ffd54f;font-size:12px;display:flex;align-items:center;gap:7px}
+#admin-banner button{
+  background:rgba(249,168,37,.1);border:1px solid rgba(249,168,37,.25);
+  color:#ffd54f;padding:5px 14px;border-radius:8px;
+  cursor:pointer;font-size:11px;font-family:inherit;transition:background .15s;
+}
+#admin-banner button:hover{background:rgba(249,168,37,.2)}
+
+/* ── HEADER ── */
+.hdr{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 24px;
+  background:rgba(255,255,255,.015);
+  border-bottom:1px solid rgba(255,255,255,.04);
+  flex-shrink:0;
+}
+.hdr-left{display:flex;align-items:center;gap:14px}
+.hdr-icon{
+  width:46px;height:46px;border-radius:14px;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,#f9a825,#e91e8c,#8e24aa);
+  flex-shrink:0;
+  box-shadow:none;
+  background:rgba(255,255,255,.06) !important;
+}
+.hdr-icon img{width:100%;height:100%;object-fit:cover;border-radius:14px}
+.hdr-icon-fb{font-size:24px;display:none}
+.hdr-title{color:#fff;font-size:19px;font-weight:800;letter-spacing:-.5px}
+.hdr-sub{color:rgba(255,255,255,.25);font-size:11px;margin-top:2px;letter-spacing:.2px}
+.hdr-right{display:flex;align-items:center;gap:10px}
+#check-indicator{display:flex;align-items:center;gap:6px;color:rgba(255,255,255,.3);font-size:11px;opacity:0;transition:opacity .3s;}
+#check-indicator.show{opacity:1}
+#check-spinner{width:12px;height:12px;border-radius:50%;border:2px solid rgba(255,255,255,.1);border-top-color:#e91e8c;animation:spin .7s linear infinite;}
+#hdr-badge{
+  background:linear-gradient(90deg,#f9a825,#e91e8c);
+  border-radius:20px;padding:5px 15px;
+  color:#fff;font-size:12px;font-weight:700;
+  opacity:0;transform:scale(.8);
+  transition:opacity .22s,transform .22s;
+  box-shadow:0 2px 12px rgba(233,30,140,.3);
+}
+#hdr-badge.show{opacity:1;transform:scale(1)}
+#log-btn{
+  display:none;padding:6px 13px;border-radius:8px;
+  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);
+  color:rgba(255,255,255,.45);font-size:11px;cursor:pointer;
+  transition:all .15s;
+}
+#log-btn:hover{background:rgba(255,255,255,.11);color:#fff;border-color:rgba(255,255,255,.15)}
+
+/* ── BODY ── */
+.body{display:flex;flex:1;min-height:0;overflow:hidden}
+
+/* ── SIDEBAR ── */
+#sidebar{
+  width:196px;flex-shrink:0;
+  border-right:1px solid rgba(255,255,255,.04);
+  padding:16px 10px;
+  display:flex;flex-direction:column;gap:2px;
+  overflow-y:auto;
+  background:rgba(0,0,0,.18);
+}
+.sb-label{
+  color:rgba(255,255,255,.15);font-size:10px;font-weight:700;
+  letter-spacing:1.2px;text-transform:uppercase;
+  padding:0 10px;margin-bottom:10px;
+}
+.si{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 12px;border-radius:11px;
+  cursor:pointer;user-select:none;
+  color:rgba(255,255,255,.3);font-size:13px;
+  border-left:3px solid transparent;
+  transition:all .18s;position:relative;
+}
+.si:hover{color:rgba(255,255,255,.7);background:rgba(255,255,255,.04)}
+.si.active{color:#fff;font-weight:600}
+.si-ico{font-size:15px;flex-shrink:0;width:20px;text-align:center}
+.si-lbl{flex:1}
+.si-cnt{
+  border-radius:7px;padding:2px 8px;
+  font-size:10px;font-weight:700;color:#fff;
+  transform:scale(0);opacity:0;
+  transition:transform .2s cubic-bezier(.34,1.56,.64,1),opacity .2s;
+}
+.si-cnt.show{transform:scale(1);opacity:1}
+
+/* ── MAIN ── */
+.main{flex:1;padding:20px 22px;overflow-y:auto;min-width:0}
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.sec-title{color:#fff;font-size:16px;font-weight:700;display:flex;align-items:center;gap:9px;}
+#cat-icon{font-size:18px}
+#sel-all-btn{
+  padding:6px 16px;border-radius:18px;
+  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);
+  color:rgba(255,255,255,.4);font-size:12px;cursor:pointer;
+  transition:all .18s;
+}
+#sel-all-btn:hover{background:rgba(255,255,255,.1);color:rgba(255,255,255,.85);border-color:rgba(255,255,255,.15)}
+
+/* ── GRID ── */
+#grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(192px,1fr));gap:11px}
+#grid .card:nth-child(1){animation:cardIn .38s ease both}
+#grid .card:nth-child(2){animation:cardIn .38s .07s ease both}
+#grid .card:nth-child(3){animation:cardIn .38s .13s ease both}
+#grid .card:nth-child(4){animation:cardIn .38s .18s ease both}
+#grid .card:nth-child(5){animation:cardIn .38s .22s ease both}
+#grid .card:nth-child(n+6){animation:cardIn .38s .26s ease both}
+
+/* ── CARD ── */
+.card{
+  background:rgba(255,255,255,.028);
+  border:1.5px solid rgba(255,255,255,.055);
+  border-radius:16px;padding:15px;
+  cursor:pointer;user-select:none;
+  transition:border-color .22s,background .22s,box-shadow .22s,transform .15s;
+  position:relative;overflow:visible;
+}
+.card::after{
+  content:'';position:absolute;inset:0;border-radius:16px;
+  background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,.035) 50%,transparent 65%);
+  background-size:600px 100%;opacity:0;transition:opacity .3s;pointer-events:none;
+}
+.card:hover::after{opacity:1;animation:shimmer 1s ease}
+.card:hover{background:rgba(255,255,255,.055);border-color:rgba(255,255,255,.1);transform:translateY(-2px)}
+.card:active{transform:translateY(0)}
+
+.card-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:11px}
+.card-ico{
+  width:40px;height:40px;border-radius:10px;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;
+  background:rgba(255,255,255,.04);
+}
+.card-ico img{width:100%;height:100%;object-fit:contain}
+.chk{
+  width:20px;height:20px;border-radius:6px;flex-shrink:0;
+  border:1.5px solid rgba(255,255,255,.14);
+  display:flex;align-items:center;justify-content:center;
+  transition:all .2s;font-size:11px;font-weight:900;color:#fff;
+}
+.card-name{color:#fff;font-weight:600;font-size:13px;line-height:1.3}
+.card-desc{color:rgba(255,255,255,.22);font-size:10.5px;margin-top:3px;line-height:1.4}
+.card-size{color:rgba(255,255,255,.2);font-size:11px;margin-top:2px}
+.card-tag{
+  display:inline-flex;align-items:center;gap:3px;
+  border-radius:7px;padding:2px 8px;
+  font-size:10px;font-weight:600;margin-top:6px;
+}
+.tag-installing{background:rgba(249,168,37,.1); color:#ffca28;border:1px solid rgba(249,168,37,.2);animation:popIn .25s ease}
+.tag-done      {background:rgba(102,187,106,.12);color:#81c784;border:1px solid rgba(102,187,106,.2);animation:popIn .25s ease}
+.tag-error     {background:rgba(239,83,80,.1);  color:#ef9a9a;border:1px solid rgba(239,83,80,.18);animation:popIn .25s ease}
+.tag-installed {background:rgba(102,187,106,.07);color:rgba(129,199,132,.55);border:1px solid rgba(102,187,106,.1);font-size:10px}
+
+/* ── TOOLTIP ── */
+#global-tooltip{
+  position:fixed;
+  background:#1c1c30;border:1px solid rgba(255,255,255,.1);
+  border-radius:13px;padding:13px 15px;
+  width:230px;z-index:9999;
+  box-shadow:0 16px 48px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.04);
+  pointer-events:none;
+  opacity:0;
+  transition:opacity .15s ease;
+}
+#global-tooltip.show{opacity:1;}
+#global-tooltip::after{
+  content:'';position:absolute;top:100%;left:var(--arrow-left,50%);
+  transform:translateX(-50%);
+  border:6px solid transparent;border-top-color:#1c1c30;
+}
+.tt-name{color:#fff;font-size:13px;font-weight:700;margin-bottom:5px}
+.tt-desc{color:rgba(255,255,255,.5);font-size:11.5px;line-height:1.55;margin-bottom:7px}
+.tt-row{display:flex;align-items:center;gap:6px;margin-top:4px}
+.tt-badge{
+  font-size:10px;padding:2px 8px;border-radius:5px;font-weight:600;
+  background:rgba(255,255,255,.06);color:rgba(255,255,255,.4);
+  border:1px solid rgba(255,255,255,.07);
+}
+.tt-badge.local{background:rgba(255,167,38,.1);color:rgba(255,167,38,.8);border-color:rgba(255,167,38,.2)}
+.tt-size{color:rgba(255,255,255,.25);font-size:10px}
+
+/* ── RIGHT PANEL ── */
+#rp{
+  width:242px;flex-shrink:0;
+  border-left:1px solid rgba(255,255,255,.04);
+  padding:18px 16px;
+  display:flex;flex-direction:column;min-height:0;
+  background:rgba(0,0,0,.14);
+}
+.rp-title{
+  color:rgba(255,255,255,.22);font-size:10px;font-weight:700;
+  letter-spacing:1.2px;text-transform:uppercase;margin-bottom:12px;flex-shrink:0;
+}
+#rp-list{flex:1;overflow-y:auto;min-height:0;margin-bottom:8px}
+.rp-item{
+  display:flex;align-items:center;gap:8px;
+  padding:7px 0;border-bottom:1px solid rgba(255,255,255,.035);
+  color:rgba(255,255,255,.6);font-size:12px;
+}
+.rp-item.new{animation:slideR .18s ease}
+.rp-ico{width:23px;height:23px;border-radius:5px;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+.rp-ico img{width:100%;height:100%;object-fit:contain}
+.rp-name{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rp-sz{font-size:10px;flex-shrink:0;transition:color .2s}
+#rp-empty{color:rgba(255,255,255,.14);font-size:12px;padding-top:6px;line-height:2}
+#rp-total{color:rgba(255,255,255,.22);font-size:11px;padding:6px 0 9px;border-top:1px solid rgba(255,255,255,.04);flex-shrink:0;display:none;}
+
+/* ── PROGRESS ── */
+#prog-area{margin-bottom:11px;flex-shrink:0;display:none}
+#prog-wrap{height:4px;border-radius:2px;background:rgba(255,255,255,.05);overflow:hidden;margin-bottom:7px;}
+#prog-bar{
+  height:100%;border-radius:2px;width:0%;
+  background:linear-gradient(90deg,#f9a825,#e91e8c,#8e24aa,#e91e8c,#f9a825);
+  background-size:300% 100%;
+  animation:barFlow 2s linear infinite;
+  transition:width .5s ease;
+}
+#prog-label{color:rgba(255,255,255,.3);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+/* ── INSTALL BUTTON ── */
+#install-btn{
+  width:100%;padding:14px;border-radius:13px;
+  background:linear-gradient(135deg,#3d2080 0%,#6c3abf 60%,#8e44d9 100%);
+  border:none;color:#fff;font-weight:700;font-size:14px;cursor:pointer;
+  box-shadow:0 4px 22px rgba(108,58,191,.35),inset 0 1px 0 rgba(255,255,255,.1);
+  transition:opacity .2s,transform .15s,box-shadow .2s;
+  flex-shrink:0;letter-spacing:.3px;
+}
+#install-btn:hover:not(:disabled){opacity:.88;transform:translateY(-1px)}
+#install-btn:active:not(:disabled){transform:translateY(0)}
+#install-btn:disabled{opacity:.32;cursor:not-allowed;animation:none;transform:none}
+
+/* ── UPDATE MODAL ── */
+#update-overlay{
+  display:none;position:fixed;inset:0;z-index:9000;
+  background:rgba(0,0,0,.75);backdrop-filter:blur(8px);
+  align-items:center;justify-content:center;
+  animation:fadeIn .25s ease;
+}
+#update-overlay.show{display:flex}
+#update-modal{
+  background:linear-gradient(145deg,#14142a,#1a1a32);
+  border:1px solid rgba(255,255,255,.09);
+  border-radius:22px;padding:34px 30px;
+  width:430px;max-width:calc(100vw - 32px);
+  box-shadow:0 28px 90px rgba(0,0,0,.65),0 0 0 1px rgba(255,255,255,.04);
+  animation:popIn .3s cubic-bezier(.34,1.56,.64,1);
+}
+.upd-icon{font-size:44px;text-align:center;margin-bottom:13px;}
+.upd-title{color:#fff;font-size:19px;font-weight:800;text-align:center;margin-bottom:7px;letter-spacing:-.3px}
+.upd-sub{color:rgba(255,255,255,.38);font-size:12px;text-align:center;margin-bottom:22px;line-height:1.65}
+.upd-versions{display:flex;justify-content:center;gap:18px;margin-bottom:26px;}
+.upd-ver{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:9px 20px;text-align:center;}
+.upd-ver-label{color:rgba(255,255,255,.25);font-size:10px;text-transform:uppercase;letter-spacing:.9px}
+.upd-ver-val{color:#fff;font-size:16px;font-weight:700;margin-top:2px}
+.upd-ver-val.new{color:#81c784}
+.upd-btns{display:flex;gap:10px}
+#upd-yes{
+  flex:1;padding:14px;border-radius:13px;
+  background:linear-gradient(135deg,#f9a825,#e91e8c);
+  border:none;color:#fff;font-weight:700;font-size:14px;cursor:pointer;
+  transition:opacity .18s,transform .12s;
+  box-shadow:0 4px 20px rgba(233,30,140,.3);
+}
+#upd-yes:hover{opacity:.88;transform:translateY(-1px)}
+#upd-yes:disabled{opacity:.4;cursor:not-allowed;transform:none}
+#upd-no{padding:14px 22px;border-radius:13px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.09);color:rgba(255,255,255,.5);font-size:14px;cursor:pointer;transition:all .18s;}
+#upd-no:hover{background:rgba(255,255,255,.11);color:#fff}
+#upd-no:disabled{opacity:.4;cursor:not-allowed}
+#upd-prog-wrap{display:none;margin-top:22px;}
+#upd-prog-bar-bg{height:5px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden;margin-bottom:8px;}
+#upd-prog-bar{height:100%;width:0%;border-radius:3px;background:linear-gradient(90deg,#f9a825,#e91e8c);transition:width .4s ease;}
+#upd-prog-msg{color:rgba(255,255,255,.4);font-size:12px;text-align:center}
+
+/* ── SEARCH ── */
+#search-wrap{
+  display:flex;align-items:center;
+  flex-shrink:0;
+}
+#search-input{
+  flex:1;padding:9px 14px 9px 36px;
+  background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.07);
+  border-radius:10px;color:#fff;font-size:13px;
+  font-family:inherit;outline:none;
+  transition:border-color .2s,background .2s;
+  position:relative;
+}
+#search-input::placeholder{color:rgba(255,255,255,.22)}
+#search-input:focus{border-color:rgba(255,255,255,.15);background:rgba(255,255,255,.07)}
+.search-icon-wrap{position:relative;flex:1;display:flex;}
+.search-icon{
+  position:absolute;left:12px;top:50%;transform:translateY(-50%);
+  color:rgba(255,255,255,.25);font-size:13px;pointer-events:none;z-index:1;
+}
+#search-clear{
+  display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);
+  background:rgba(255,255,255,.1);border:none;color:rgba(255,255,255,.5);
+  width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:11px;
+  align-items:center;justify-content:center;transition:background .15s;
+}
+#search-clear.show{display:flex}
+#search-clear:hover{background:rgba(255,255,255,.2);color:#fff}
+#search-results-label{
+  color:rgba(255,255,255,.25);font-size:11px;padding:10px 22px 0;flex-shrink:0;
+  display:none;
+  margin-bottom:10px;
+}
+
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loading">
+  <div id="load-media">
+    <img id="load-gif" src="./loading.gif" alt=""
+         onerror="this.style.display='none';document.getElementById('load-spinner').style.display='block'">
+    <div id="load-spinner"></div>
+  </div>
+  <div id="load-title">CompPack</div>
+  <div id="load-sub"></div>
+  <div id="load-bar-wrap"><div id="load-bar"></div></div>
+  <div id="load-pct">0%</div>
+</div>
+
+<!-- TITLEBAR -->
+<div id="titlebar">
+  <span id="titlebar-name">COMPPACK</span>
+  <div class="tb-btns">
+    <button class="tb-btn"   onclick="window.electronAPI.minimize()">─</button>
+    <button class="tb-btn x" onclick="window.electronAPI.close()">✕</button>
+  </div>
+</div>
+
+<!-- SHELL -->
+<div id="shell">
+
+  <div id="admin-banner">
+    <span>⚠️ Запущено без прав администратора — установка может не работать</span>
+    <button onclick="window.electronAPI.relaunchAdmin()">Перезапустить как администратор</button>
+  </div>
+
+  <div class="hdr">
+    <div class="hdr-left">
+      <div class="hdr-icon">
+        <img src="./appicon.png" alt=""
+             onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+        <span class="hdr-icon-fb">🚀</span>
+      </div>
+      <div>
+        <div class="hdr-title">CompPack</div>
+        <div class="hdr-sub">Быстрая настройка Windows</div>
+      </div>
+    </div>
+    <div class="hdr-right">
+      <div id="check-indicator"><div id="check-spinner"></div><span>Проверка...</span></div>
+      <div id="hdr-badge">0 выбрано</div>
+      <button id="log-btn" onclick="window.electronAPI.openLogs()">📋 Логи</button>
+    </div>
+  </div>
+
+  <div class="body">
+    <div id="sidebar"></div>
+
+    <div class="main">
+      <div class="sec-hdr">
+        <div class="sec-title"><span id="cat-icon"></span><span id="cat-name"></span></div>
+        <div id="search-wrap">
+          <div class="search-icon-wrap">
+            <span class="search-icon">🔍</span>
+            <input id="search-input" type="text" placeholder="Поиск..." oninput="onSearch(this.value)">
+            <button id="search-clear" onclick="clearSearch()">✕</button>
+          </div>
+        </div>
+        <button id="sel-all-btn" onclick="selectAll()">Выбрать все</button>
+      </div>
+      <div id="search-results-label"></div>
+      <div id="grid"></div>
+    </div>
+
+    <div id="rp">
+      <div class="rp-title">К установке</div>
+      <div id="rp-list"><div id="rp-empty">Выбери программы<br>← в списке слева</div></div>
+      <div id="rp-total"></div>
+      <div id="prog-area">
+        <div id="prog-wrap"><div id="prog-bar"></div></div>
+        <div id="prog-label"></div>
+      </div>
+      <button id="install-btn" onclick="startInstall()" disabled>⚡ Установить</button>
+    </div>
+  </div>
+</div>
+
+<!-- GLOBAL TOOLTIP -->
+<div id="global-tooltip"><div class="tt-name" id="gt-name"></div><div class="tt-desc" id="gt-desc"></div><div class="tt-row"><span class="tt-size" id="gt-size"></span></div></div>
+
+<!-- UPDATE MODAL -->
+<div id="update-overlay">
+  <div id="update-modal">
+    <div class="upd-icon">🚀</div>
+    <div class="upd-title">Доступно обновление!</div>
+    <div class="upd-sub">Новая версия CompPack уже готова и ждёт тебя.<br>Обновление займёт меньше минуты.</div>
+    <div class="upd-versions">
+      <div class="upd-ver"><div class="upd-ver-label">Текущая</div><div class="upd-ver-val" id="upd-cur">—</div></div>
+      <div style="color:rgba(255,255,255,.2);font-size:22px;align-self:center">→</div>
+      <div class="upd-ver"><div class="upd-ver-label">Новая</div><div class="upd-ver-val new" id="upd-new">—</div></div>
+    </div>
+    <div class="upd-btns">
+      <button id="upd-yes" onclick="doUpdate()">⚡ Обновить сейчас</button>
+      <button id="upd-no"  onclick="skipUpdate()">Не сейчас</button>
+    </div>
+    <div id="upd-prog-wrap">
+      <div id="upd-prog-bar-bg"><div id="upd-prog-bar"></div></div>
+      <div id="upd-prog-msg">Подготовка...</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════
+//  🛠️  НАСТРОЙ СВОИ ПРОГРАММЫ ЗДЕСЬ
+//
+//  Поля:
+//    id        — уникальный идентификатор (любой)
+//    name      — название программы
+//    desc      — описание (показывается в тултипе при наведении) ← НОВОЕ
+//    icon      — имя файла иконки из папки icons/ (без .png)
+//    emoji     — запасной эмодзи если иконки нет
+//    winget    — ID пакета winget (для онлайн-установки)
+//    type      — 'local' для локальных файлов
+//    localPath — путь к локальному файлу
+//    args      — аргументы запуска
+//    size      — размер в МБ
+// ═══════════════════════════════════════════════════════════════════════
+const CATEGORIES = [
+  {
+    id:'libs', label:'Библиотеки', icon:'⚙️', color:'#90CAF9',
+    apps:[
+      {id:'vcx64_22', name:'VC++ 2015–2022 x64', desc:'Библиотека Microsoft Visual C++ для запуска большинства игр и программ (64-бит)', icon:'msvc', emoji:'⚙️', winget:'Microsoft.VCRedist.2015+.x64', size:'25'},
+      {id:'vcx86_22', name:'VC++ 2015–2022 x86', desc:'Библиотека Microsoft Visual C++ для 32-битных программ', icon:'msvc', emoji:'⚙️', winget:'Microsoft.VCRedist.2015+.x86', size:'13'},
+      {id:'vcx64_13', name:'VC++ 2013 x64',      desc:'Старая версия VC++ — нужна для некоторых игр 2013–2015 годов', icon:'msvc', emoji:'⚙️', winget:'Microsoft.VCRedist.2013.x64', size:'7'},
+      {id:'vcx86_13', name:'VC++ 2013 x86',      desc:'Старая версия VC++ x86 — нужна для 32-битных игр и программ', icon:'msvc', emoji:'⚙️', winget:'Microsoft.VCRedist.2013.x86', size:'6'},
+      {id:'dotnet8',  name:'.NET 8 Runtime',      desc:'Среда выполнения .NET 8 — нужна для современных приложений Microsoft', icon:'dotnet', emoji:'🔷', winget:'Microsoft.DotNet.DesktopRuntime.8', size:'55'},
+      {id:'dotnet7',  name:'.NET 7 Runtime',      desc:'Среда выполнения .NET 7 — для программ, ещё не перешедших на .NET 8', icon:'dotnet', emoji:'🔷', winget:'Microsoft.DotNet.DesktopRuntime.7', size:'50'},
+      {id:'directx',  name:'DirectX Runtime',     desc:'Набор библиотек DirectX — обязателен для игр и графических приложений', icon:'directx', emoji:'🎮', winget:'Microsoft.DirectX', size:'95'},
+      {id:'nvidia',   name:'NVIDIA App',           desc:'Официальный центр управления драйверами и настройками видеокарт NVIDIA', icon:'nvidia', emoji:'🟢', type:'local', localPath:'./tools/NVIDIA.exe', args:'/S', size:'350'},
+      {id:'amd',      name:'AMD Software',         desc:'Официальное ПО AMD для управления драйверами видеокарт и процессоров AMD', icon:'amd', emoji:'🔴', type:'local', localPath:'./tools/amd.exe', args:'/S', size:'350'},
+      {id:'java',     name:'Java Runtime',         desc:'Среда выполнения Java — нужна для Minecraft и других Java-приложений', icon:'java', emoji:'☕', type:'local', localPath:'./tools/java.exe', args:'/S', size:'50'},
+    ]
+  },
+  {
+    id:'browsers', label:'Браузеры', icon:'🌐', color:'#4FC3F7',
+    apps:[
+      {id:'chrome',        name:'Google Chrome',   desc:'Самый популярный браузер в мире от Google. Быстрый, стабильный, с кучей расширений', icon:'chrome', emoji:'🟡', winget:'Google.Chrome', size:'90'},
+      {id:'firefox',       name:'Mozilla Firefox', desc:'Браузер с открытым исходным кодом. Отличная приватность и гибкая настройка', icon:'firefox', emoji:'🦊', winget:'Mozilla.Firefox', size:'55'},
+      {id:'brave',         name:'Brave',           desc:'Браузер с встроенной блокировкой рекламы и трекеров. Очень быстрый', icon:'brave', emoji:'🦁', winget:'Brave.Brave', size:'170'},
+      {id:'opera',         name:'Opera GX',        desc:'Браузер для геймеров с лимитером CPU/RAM и встроенным VPN', icon:'opera', emoji:'⭕', winget:'Opera.OperaGX', size:'130'},
+      {id:'yandexbrowser', name:'Yandex Browser',  desc:'Браузер от Яндекса с Алисой и защитой Kaspersky. Оптимизирован для рунета', icon:'yanbr', emoji:'🟡', type:'local', localPath:'./tools/Yandex.exe', args:'/S', size:'600'},
+    ]
+  },
+  {
+    id:'gaming', label:'Игры', icon:'🎮', color:'#AB47BC',
+    apps:[
+      {id:'steam',         name:'Steam',           desc:'Главная игровая платформа. Тысячи игр, облачные сохранения, сообщество', icon:'steam', emoji:'🕹️', winget:'Valve.Steam', size:'3'},
+      {id:'epic',          name:'Epic Games',      desc:'Магазин Epic Games с эксклюзивами и регулярными бесплатными играми', icon:'epic', emoji:'🏆', winget:'EpicGames.EpicGamesLauncher', size:'60'},
+      {id:'discord',       name:'Discord',         desc:'Голосовой и текстовый чат для геймеров. Серверы, стримы, боты', icon:'discord', emoji:'💬', winget:'Discord.Discord', size:'85'},
+      {id:'ubisoft',       name:'Ubisoft Connect', desc:'Лаунчер для игр Ubisoft: Assassin\'s Creed, Far Cry, Rainbow Six и др.', icon:'ubisoft', emoji:'🔷', winget:'Ubisoft.Connect', size:'120'},
+      {id:'prismlauncher', name:'Prism Launcher',  desc:'Открытый лаунчер для Minecraft с поддержкой множества версий и модов', icon:'PL', emoji:'💎', type:'local', localPath:'./tools/PrismLauncher.exe', args:'/S', size:'120'},
+      {id:'tlauncher',     name:'TLauncher',       desc:'Популярный лаунчер Minecraft с поддержкой модов и пиратских версий', icon:'tl', emoji:'🟢', type:'local', localPath:'./tools/tl.exe', args:'/S', size:'60'},
+      {id:'bluestacks',    name:'BlueStacks',      desc:'Эмулятор Android на ПК — запускай мобильные игры на компьютере', icon:'bl', emoji:'📱', winget:'BlueStack.BlueStacks', size:'60'},
+    ]
+  },
+  {
+    id:'media', label:'Медиа', icon:'🎵', color:'#66BB6A',
+    apps:[
+      {id:'vlc',      name:'VLC Player',   desc:'Легендарный медиаплеер. Воспроизводит всё что существует без кодеков', icon:'vlc', emoji:'🔶', winget:'VideoLAN.VLC', size:'40'},
+      {id:'spotify',  name:'Spotify',      desc:'Стриминговый сервис музыки. 100+ миллионов треков в кармане', icon:'spotify', emoji:'🎧', winget:'Spotify.Spotify', size:'110'},
+      {id:'yanmusic', name:'Yandex Music', desc:'Яндекс Музыка с персональными рекомендациями и огромной библиотекой', icon:'YanMusic', emoji:'🎵', type:'local', localPath:'./tools/Yandex_Music.exe', args:'/S', size:'347'},
+      {id:'obs',      name:'OBS Studio',   desc:'Профессиональный инструмент для стриминга и записи экрана. Бесплатно', icon:'obs', emoji:'📹', winget:'OBSProject.OBSStudio', size:'220'},
+      {id:'krita',    name:'Krita',        desc:'Профессиональная программа для рисования и цифровой живописи. Бесплатная', icon:'krita', emoji:'🎨', winget:'KDE.Krita', size:'250'},
+    ]
+  },
+  {
+    id:'dev', label:'Разработка', icon:'💻', color:'#FF7043',
+    apps:[
+      {id:'vscode',  name:'VS Code',      desc:'Лучший бесплатный редактор кода от Microsoft. Расширения на любой вкус', icon:'vscode', emoji:'🔵', winget:'Microsoft.VisualStudioCode', size:'80'},
+      {id:'git',     name:'Git',          desc:'Система контроля версий. Незаменима для любого разработчика', icon:'git', emoji:'🌿', winget:'Git.Git', size:'50'},
+      {id:'nodejs',  name:'Node.js',      desc:'Среда выполнения JavaScript на сервере. Основа современной веб-разработки', icon:'nodejs', emoji:'🟩', winget:'OpenJS.NodeJS', size:'30'},
+      {id:'python',  name:'Python 3.12',  desc:'Язык программирования Python. Идеален для автоматизации, AI и веба', icon:'python', emoji:'🐍', winget:'Python.Python.3.12', size:'25'},
+    ]
+  },
+  {
+    id:'utils', label:'Утилиты', icon:'🔧', color:'#FFA726',
+    apps:[
+      {id:'7zip',       name:'7-Zip',            desc:'Лучший архиватор. Маленький, быстрый, бесплатный. Открывает всё', icon:'7zip', emoji:'📦', winget:'7zip.7zip', size:'2'},
+      {id:'winrar',     name:'WinRAR',            desc:'Популярный архиватор с поддержкой RAR, ZIP и других форматов', icon:'wr', emoji:'📦', type:'local', localPath:'./tools/winrar.exe', args:'/S', size:'4'},
+      {id:'cpuz',       name:'CPU-Z',             desc:'Подробная информация о процессоре, памяти и материнской плате', icon:'cpuz', emoji:'⚡', winget:'CPUID.CPU-Z', size:'4'},
+      {id:'msi',        name:'MSI Afterburner',   desc:'Разгон видеокарты, мониторинг температур и FPS в играх', icon:'msi', emoji:'🌡️', winget:'Guru3D.Afterburner', size:'30'},
+      {id:'hwinfo',     name:'HWiNFO',            desc:'Детальная информация об всём железе. Мониторинг в реальном времени', icon:'hwinfo', emoji:'🔍', winget:'REALiX.HWiNFO', size:'10'},
+      {id:'zapret',     name:'Zapret',            desc:'Инструмент для обхода блокировок сайтов без VPN', icon:'zp', emoji:'🔓', type:'local', localPath:'./tools/zp.exe', args:'/S', size:'4'},
+      {id:'vpndiscord', name:'Discord VPN',       desc:'VPN специально для Discord. Инструкция внутри папки', icon:'dvpn', emoji:'👽', type:'local', localPath:'./tools/VPNDiscord.exe', args:'/S', size:'75'},
+      {id:'qbit',       name:'qBittorrent',       desc:'Торрент-клиент без рекламы и без шпионажа. Просто качает файлы', icon:'qbit', emoji:'🌊', winget:'qBittorrent.qBittorrent', size:'10'},
+    ]
+  },
+  {
+    id:'office', label:'Офис', icon:'📄', color:'#EC407A',
+    apps:[
+      {id:'libre',    name:'LibreOffice',  desc:'Бесплатный офисный пакет. Альтернатива Microsoft Office', icon:'libre', emoji:'📝', winget:'TheDocumentFoundation.LibreOffice', size:'350'},
+      {id:'npp',      name:'Notepad++',   desc:'Мощный текстовый редактор с подсветкой синтаксиса для программистов', icon:'npp', emoji:'📋', winget:'Notepad++.Notepad++', size:'4'},
+      {id:'telegram', name:'Telegram',    desc:'Быстрый мессенджер с каналами, ботами и огромным функционалом', icon:'telegram', emoji:'✈️', winget:'Telegram.TelegramDesktop', size:'55'},
+      {id:'anydesk',  name:'AnyDesk',     desc:'Программа для удалённого доступа к компьютеру. Быстрее TeamViewer', icon:'anydesk', emoji:'🖥️', winget:'AnyDeskSoftwareGmbH.AnyDesk', size:'6'},
+      {id:'office',   name:'OfficePack',  desc:'Набор офисных программ Microsoft — Word, Excel, PowerPoint и другие', icon:'msvc', emoji:'📊', type:'local', localPath:'./tools/Install-x64.bat', args:'/S', size:'10240'},
+    ]
+  },
+];
+// ═══════════════════════════════════════════════════════════════════════
+
+const allApps = CATEGORIES.flatMap(c => c.apps.map(a => ({...a, catColor:c.color, catId:c.id})));
+
+let activeCat   = CATEGORIES[0].id;
+let selected    = {};
+let appStatus   = {};
+let installedApps = {};
+let adminOk     = true;
+let installing  = false;
+let progress    = 0;
+let progLabel   = '';
+let prevSelIds  = [];
+
+function icoHTML(app, size=36) {
+  const r  = Math.round(size * 0.24);
+  const fb = `this.outerHTML='<span style=\\'font-size:${Math.round(size*.65)}px\\'>${app.emoji}</span>'`;
+  return `<img src="./icons/${app.icon}.png" width="${size}" height="${size}"
+    style="border-radius:${r}px;object-fit:contain;display:block" onerror="${fb}">`;
+}
+
+function renderSidebar() {
+  document.getElementById('sidebar').innerHTML =
+    `<div class="sb-label">Категории</div>` +
+    CATEGORIES.map(c => {
+      const cnt    = c.apps.filter(a => selected[a.id]).length;
+      const active = c.id === activeCat;
+      return `<div class="si${active?' active':''}"
+        style="${active?`background:${c.color}15;border-left-color:${c.color};color:#fff`:''}"
+        onclick="switchCat('${c.id}')">
+        <span class="si-ico">${c.icon}</span>
+        <span class="si-lbl">${c.label}</span>
+        <span class="si-cnt${cnt?' show':''}" style="background:${c.color}">${cnt||''}</span>
+      </div>`;
+    }).join('');
+}
+
+function tagHTML(id) {
+  const st = appStatus[id];
+  if (st === 'installing') return `<div class="card-tag tag-installing">⏳ Устанавливается</div>`;
+  if (st === 'done')       return `<div class="card-tag tag-done">✅ Установлено</div>`;
+  if (st === 'error')      return `<div class="card-tag tag-error">❌ Ошибка (лог)</div>`;
+  if (installedApps[id])   return `<div class="card-tag tag-installed">✓ Уже установлено</div>`;
+  return '';
+}
+
+function renderGrid() {
+  const cat = CATEGORIES.find(c => c.id === activeCat);
+  document.getElementById('cat-icon').textContent = cat.icon;
+  document.getElementById('cat-name').textContent = cat.label;
+  document.getElementById('sel-all-btn').textContent =
+    cat.apps.every(a => selected[a.id]) ? 'Снять все' : 'Выбрать все';
+
+  document.getElementById('grid').innerHTML = cat.apps.map(app => {
+    const sel   = !!selected[app.id];
+    const color = cat.color;
+    const isLocal = app.type === 'local';
+    const desc  = app.desc || '';
+    return `<div class="card" data-id="${app.id}"
+      style="border-color:${sel?color:'rgba(255,255,255,.055)'};
+             background:${sel?color+'16':'rgba(255,255,255,.028)'};
+             box-shadow:${sel?`0 0 0 1px ${color}30,0 6px 24px ${color}1a`:'none'}"
+      onclick="toggleCard('${app.id}')">
+      <div class="card-top">
+        <div class="card-ico">${icoHTML(app,38)}</div>
+        <div class="chk" style="${sel?`background:${color};border-color:${color};transform:scale(1.1)`:''}">${sel?'✓':''}</div>
+      </div>
+      <div class="card-name">${app.name}</div>
+      <div class="card-size">~${app.size} МБ</div>
+      ${tagHTML(app.id)}
+      ${desc ? `<div class="card-tooltip-data" data-desc="${desc.replace(/"/g,'&quot;')}" data-size="${app.size}"></div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function syncPanel() {
+  const selApps = allApps.filter(a => selected[a.id]);
+  const nowIds  = selApps.map(a => a.id);
+  const list    = document.getElementById('rp-list');
+
+  const badge = document.getElementById('hdr-badge');
+  badge.textContent = `${selApps.length} выбрано`;
+  badge.classList.toggle('show', selApps.length > 0);
+
+  prevSelIds.filter(id => !nowIds.includes(id)).forEach(id => {
+    const el = list.querySelector(`[data-rp="${id}"]`);
+    if (el) el.remove();
+  });
+  nowIds.filter(id => !prevSelIds.includes(id)).forEach(id => {
+    const app = allApps.find(a => a.id === id); if (!app) return;
+    const div = document.createElement('div');
+    div.className = 'rp-item new'; div.dataset.rp = id;
+    div.innerHTML = `<div class="rp-ico">${icoHTML(app,20)}</div>
+      <span class="rp-name">${app.name}</span>
+      <span class="rp-sz" style="color:${app.catColor}">~${app.size}МБ</span>`;
+    list.appendChild(div);
+    setTimeout(() => div.classList.remove('new'), 200);
+  });
+  nowIds.forEach(id => {
+    const sz = list.querySelector(`[data-rp="${id}"] .rp-sz`); if (!sz) return;
+    const st = appStatus[id]; const app = allApps.find(a => a.id === id);
+    sz.textContent = st==='done'?'✅':st==='installing'?'⏳':st==='error'?'❌':`~${app.size}МБ`;
+    sz.style.color = st==='done'?'#81c784':st==='error'?'#ef9a9a':app.catColor;
+  });
+  prevSelIds = [...nowIds];
+
+  const emptyEl = list.querySelector('#rp-empty');
+  if (selApps.length === 0) {
+    if (!emptyEl) { const e=document.createElement('div'); e.id='rp-empty'; e.innerHTML='Выбери программы<br>← в списке слева'; list.appendChild(e); }
+  } else { if (emptyEl) emptyEl.remove(); }
+
+  const total = document.getElementById('rp-total');
+  if (selApps.length > 0) {
+    const mb = selApps.reduce((s,a) => s + parseFloat(a.size)||0, 0);
+    total.textContent = `Итого: ~${mb.toFixed(0)} МБ`;
+    total.style.display = 'block';
+  } else { total.style.display = 'none'; }
+
+  document.getElementById('prog-area').style.display = installing ? 'block' : 'none';
+  document.getElementById('prog-bar').style.width    = progress + '%';
+  document.getElementById('prog-label').textContent  = progLabel;
+
+  const btn = document.getElementById('install-btn');
+  if (!adminOk) {
+    btn.disabled = true; btn.textContent = '🔒 Нужны права администратора';
+  } else {
+    btn.disabled = installing || selApps.length === 0;
+    btn.textContent = installing
+      ? `${progress}% — Устанавливаю...`
+      : selApps.length === 0 ? 'Установить' : `Установить (${selApps.length})`;
+  }
+}
+
+function applyCardStyle(id) {
+  const cat  = CATEGORIES.find(c => c.apps.some(a => a.id === id));
+  const card = document.querySelector(`.card[data-id="${id}"]`);
+  if (!card||!cat) return;
+  const sel = !!selected[id], c = cat.color;
+  card.style.borderColor = sel ? c : 'rgba(255,255,255,.055)';
+  card.style.background  = sel ? c+'16' : 'rgba(255,255,255,.028)';
+  card.style.boxShadow   = sel ? `0 0 0 1px ${c}30,0 6px 24px ${c}1a` : 'none';
+  const chk = card.querySelector('.chk');
+  if (chk) {
+    chk.style.background  = sel ? c : '';
+    chk.style.borderColor = sel ? c : '';
+    chk.style.transform   = sel ? 'scale(1.1)' : '';
+    chk.textContent       = sel ? '✓' : '';
+  }
+}
+
+function applyCardStatus(id) {
+  const card = document.querySelector(`.card[data-id="${id}"]`); if (!card) return;
+  let tag = card.querySelector('.card-tag');
+  const html = tagHTML(id);
+  if (!html) { if (tag) tag.remove(); return; }
+  if (!tag) { tag = document.createElement('div'); card.insertBefore(tag, card.querySelector('.card-tooltip')); }
+  const tmp = document.createElement('div'); tmp.innerHTML = html;
+  const nt = tmp.firstElementChild;
+  tag.className = nt.className; tag.textContent = nt.textContent;
+}
+
+function switchCat(id) {
+  if (id === activeCat) return;
+  activeCat = id;
+  renderSidebar();
+  renderGrid();
+}
+
+function toggleCard(id) {
+  if (installing) return;
+  selected[id] = !selected[id];
+  applyCardStyle(id);
+  renderSidebar();
+  syncPanel();
+  const cat = CATEGORIES.find(c => c.apps.some(a => a.id === id));
+  if (cat) document.getElementById('sel-all-btn').textContent =
+    cat.apps.every(a => selected[a.id]) ? 'Снять все' : 'Выбрать все';
+}
+
+function selectAll() {
+  const cat    = CATEGORIES.find(c => c.id === activeCat);
+  const allSel = cat.apps.every(a => selected[a.id]);
+  cat.apps.forEach(a => { selected[a.id] = !allSel; });
+  cat.apps.forEach(a => applyCardStyle(a.id));
+  document.getElementById('sel-all-btn').textContent = allSel ? 'Выбрать все' : 'Снять все';
+  renderSidebar(); syncPanel();
+}
+
+function startInstall() {
+  const apps = allApps.filter(a => selected[a.id]);
+  if (!apps.length || installing || !adminOk) return;
+  installing = true; progress = 0; progLabel = 'Подготовка...'; appStatus = {};
+  document.getElementById('log-btn').style.display = 'none';
+  syncPanel();
+  window.electronAPI.removeListeners();
+  window.electronAPI.onAppStatus(data => {
+    appStatus[data.id] = data.status;
+    if (data.status === 'installing') {
+      const app = allApps.find(a => a.id === data.id);
+      progress  = Math.round((data.index / data.total) * 100);
+      progLabel = `[${data.index+1}/${data.total}] ${app ? app.name : data.id}`;
+    } else {
+      progress = Math.round(((data.index+1) / data.total) * 100);
+      if (data.status === 'done') installedApps[data.id] = true;
+    }
+    applyCardStatus(data.id); syncPanel();
+  });
+  window.electronAPI.onInstallComplete(({ errors }) => {
+    installing = false; progress = 100;
+    progLabel = errors > 0
+      ? `⚠️ Готово с ${errors} ошибк${errors===1?'ой':'ами'} — см. лог`
+      : '✅ Все программы установлены!';
+    document.getElementById('log-btn').style.display = 'block';
+    syncPanel();
+  });
+  window.electronAPI.startInstall(apps);
+}
+
+// ── Смешные надписи загрузки ──
+const LOAD_JOKES = [
+  'Будим компьютер...',
+  'Ищу где лежат программы...',
+  'Уговариваю winget работать...',
+  'Кофе закончился, работаю так...',
+  'Пересчитываю пиксели...',
+  'Гружу интернет в оперативку...',
+  'Прошу программы вести себя...',
+  'Делаю вид что всё под контролем...',
+  'Почти готово (это правда)...',
+  'Загружаю загрузку загрузки...',
+  'Спрашиваю у Windows разрешения...',
+  'Windows думает. Ждём...',
+];
+
+function animateLoadBar() {
+  const bar  = document.getElementById('load-bar');
+  const pct  = document.getElementById('load-pct');
+  const sub  = document.getElementById('load-sub');
+  const steps = [{w:10,t:120},{w:28,t:400},{w:46,t:750},{w:63,t:1100},{w:79,t:1550},{w:92,t:2000},{w:100,t:2450}];
+  let jokeIdx = 0;
+  sub.textContent = LOAD_JOKES[0];
+  const jokeTimer = setInterval(() => {
+    jokeIdx = (jokeIdx + 1) % LOAD_JOKES.length;
+    sub.style.opacity = '0';
+    setTimeout(() => { sub.textContent = LOAD_JOKES[jokeIdx]; sub.style.opacity = '1'; }, 150);
+  }, 450);
+  steps.forEach(s => setTimeout(() => { bar.style.width = s.w+'%'; pct.textContent = s.w+'%'; }, s.t));
+  setTimeout(() => clearInterval(jokeTimer), 2600);
+}
+
+// ── Update ──
+let _updatePayload = null;
+
+async function checkForUpdate() {
+  try {
+    const result = await window.electronAPI.checkUpdate();
+    if (!result.hasUpdate) return;
+    _updatePayload = { downloadUrl: result.downloadUrl, assetName: result.assetName };
+    document.getElementById('upd-cur').textContent = result.currentVersion;
+    document.getElementById('upd-new').textContent = result.remoteVersion;
+    document.getElementById('update-overlay').classList.add('show');
+  } catch(e) { console.warn('Update check failed:', e); }
+}
+
+function doUpdate() {
+  if (!_updatePayload) return;
+  document.getElementById('upd-yes').disabled = true;
+  document.getElementById('upd-no').disabled  = true;
+  document.getElementById('upd-prog-wrap').style.display = 'block';
+  window.electronAPI.onUpdateProgress(data => {
+    document.getElementById('upd-prog-bar').style.width = data.pct + '%';
+    document.getElementById('upd-prog-msg').textContent = data.msg;
+    if (data.step === 'error') {
+      document.getElementById('upd-yes').disabled = false;
+      document.getElementById('upd-no').disabled  = false;
+    }
+  });
+  window.electronAPI.applyUpdate(_updatePayload);
+}
+
+function skipUpdate() {
+  document.getElementById('update-overlay').classList.remove('show');
+}
+
+async function bootChecks() {
+  window.electronAPI.onAdminStatus(isAdm => {
+    adminOk = isAdm;
+    if (!isAdm) document.getElementById('admin-banner').style.display = 'flex';
+    syncPanel();
+  });
+  checkForUpdate();
+  try {
+    document.getElementById('check-indicator').classList.add('show');
+    const wingetApps = allApps.filter(a => !a.type || a.type === 'winget');
+    const ids        = wingetApps.map(a => a.winget).filter(Boolean);
+    const results    = await window.electronAPI.checkInstalled(ids);
+    for (const [wid, found] of Object.entries(results)) {
+      if (found) { const app = allApps.find(a => a.winget === wid); if (app) installedApps[app.id] = true; }
+    }
+    document.getElementById('check-indicator').classList.remove('show');
+    renderGrid();
+  } catch(e) {
+    document.getElementById('check-indicator').classList.remove('show');
+  }
+}
+
+
+// ── ПОИСК ──────────────────────────────────────────────────────────────────
+let searchQuery = '';
+
+function onSearch(val) {
+  searchQuery = val.trim().toLowerCase();
+  document.getElementById('search-clear').classList.toggle('show', searchQuery.length > 0);
+  if (searchQuery.length === 0) {
+    clearSearch();
+    return;
+  }
+
+  // Поиск по всем категориям
+  const matches = allApps.filter(a =>
+    a.name.toLowerCase().includes(searchQuery) ||
+    (a.desc||'').toLowerCase().includes(searchQuery)
+  );
+  const lbl = document.getElementById('search-results-label');
+  lbl.style.display = 'block';
+  lbl.textContent = matches.length > 0
+    ? `Найдено: ${matches.length} программ`
+    : 'Ничего не найдено';
+
+  const grid = document.getElementById('grid');
+  grid.innerHTML = matches.map(app => {
+    const cat = CATEGORIES.find(c => c.catId === app.catId || c.apps.some(a2 => a2.id === app.id));
+    const color = cat ? cat.color : '#fff';
+    const sel = !!selected[app.id];
+    const desc = app.desc || '';
+    return `<div class="card" data-id="${app.id}"
+      style="border-color:${sel?color:'rgba(255,255,255,.055)'};
+             background:${sel?color+'16':'rgba(255,255,255,.028)'};
+             box-shadow:${sel?`0 0 0 1px ${color}30,0 6px 24px ${color}1a`:'none'}"
+      onclick="toggleCard('${app.id}')">
+      <div class="card-top">
+        <div class="card-ico">${icoHTML(app,38)}</div>
+        <div class="chk" style="${sel?`background:${color};border-color:${color};transform:scale(1.1)`:''}">${sel?'✓':''}</div>
+      </div>
+      <div class="card-name">${app.name}</div>
+      <div style="color:${color};font-size:10px;margin-top:2px;opacity:.6">${cat?cat.label:''}</div>
+      <div class="card-size">~${app.size} МБ</div>
+      ${tagHTML(app.id)}
+      ${desc ? `<div class="card-tooltip-data" data-desc="${desc.replace(/"/g,'&quot;')}" data-size="${app.size}"></div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function clearSearch() {
+  searchQuery = '';
+  document.getElementById('search-input').value = '';
+  document.getElementById('search-clear').classList.remove('show');
+  document.getElementById('search-results-label').style.display = 'none';
+  // убрал opacity строки
+  renderGrid();
+}
+
+// ── ГЛОБАЛЬНЫЙ ТУЛТИП (без бага позиционирования) ──────────────────────────
+function initTooltips() {}
+
+function positionTooltip(e, card) {
+  const tooltip = document.getElementById('global-tooltip');
+  const rect = card.getBoundingClientRect();
+  const tw = 230;
+  let left = rect.left + rect.width / 2 - tw / 2;
+  let top  = rect.top - tooltip.offsetHeight - 12;
+  // Не выходим за левый/правый край
+  if (left < 8) left = 8;
+  if (left + tw > window.innerWidth - 8) left = window.innerWidth - tw - 8;
+  // Если нет места сверху — показываем снизу
+  if (top < 8) top = rect.bottom + 10;
+  tooltip.style.left = left + 'px';
+  tooltip.style.top  = top  + 'px';
+  // Перемещаем стрелочку
+  const arrowLeft = (rect.left + rect.width/2) - left;
+  tooltip.style.setProperty('--arrow-left', Math.max(16, Math.min(arrowLeft, tw-16)) + 'px');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  animateLoadBar();
+  renderSidebar();
+  renderGrid();
+  syncPanel();
+    // Тултип — один делегированный слушатель на весь грид, навсегда
+  const grid    = document.getElementById('grid');
+  const tooltip = document.getElementById('global-tooltip');
+
+  grid.addEventListener('pointerover', e => {
+    const card   = e.target.closest('.card');
+    const dataEl = card?.querySelector('.card-tooltip-data');
+    if (!card || !dataEl) { tooltip.classList.remove('show'); return; }
+    document.getElementById('gt-name').textContent = card.querySelector('.card-name')?.textContent || '';
+    document.getElementById('gt-desc').textContent = dataEl.dataset.desc || '';
+    document.getElementById('gt-size').textContent = dataEl.dataset.size ? `~${dataEl.dataset.size} МБ` : '';
+    positionTooltip(e, card);
+    tooltip.classList.add('show');
+  });
+
+  grid.addEventListener('pointermove', e => {
+    const card = e.target.closest('.card');
+    if (card?.querySelector('.card-tooltip-data')) positionTooltip(e, card);
+    else tooltip.classList.remove('show');
+  });
+
+  grid.addEventListener('pointerout', e => {
+    const toEl = e.relatedTarget;
+    if (!toEl || !toEl.closest('.card')) tooltip.classList.remove('show');
+  });
+
+  document.addEventListener('mouseleave', () => tooltip.classList.remove('show'));
+
+  setTimeout(() => {
+    document.getElementById('loading').classList.add('hide');
+    document.getElementById('shell').classList.add('visible');
+    setTimeout(() => {
+      document.getElementById('loading').style.display = 'none';
+      bootChecks();
+    }, 650);
+  }, 2700);
+});
+</script>
+</body>
+</html>
